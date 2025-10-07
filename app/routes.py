@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from .models import db, User, Game
 import random
+from datetime import datetime
 
 bp = Blueprint("api", __name__)
 
@@ -49,6 +50,25 @@ def generate_board(rows, cols, mines):
             board[r][c] = count
     return board
 
+def flood_fill(revealed, board, r, c, rows, cols):
+    if revealed[r][c]:
+        return
+    revealed[r][c] = True
+    if board[r][c] != 0:
+        return
+    for dr in [-1, 0, 1]:
+        for dc in [-1, 0, 1]:
+            if dr == 0 and dc == 0:
+                continue
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols:
+                flood_fill(revealed, board, nr, nc, rows, cols)
+
+def check_win(revealed, board, rows, cols, mines):
+    revealed_count = sum(sum(row) for row in revealed)
+    total_cells = rows * cols
+    return revealed_count == total_cells - mines
+
 @bp.route("/games/new", methods=["POST"])
 @jwt_required()
 def new_game():
@@ -61,3 +81,78 @@ def new_game():
     db.session.add(game)
     db.session.commit()
     return jsonify({"game_id": game.id, "board": game.board_state, "revealed": game.revealed, "flagged": game.flagged}), 201
+
+@bp.route("/games/<int:game_id>", methods=["GET"])
+@jwt_required()
+def get_game(game_id):
+    user_id = get_jwt_identity()
+    game = Game.query.filter_by(id=game_id, user_id=user_id).first()
+    if not game:
+        return jsonify({"error": "Game not found"}), 404
+    return jsonify({
+        "id": game.id,
+        "rows": game.rows,
+        "cols": game.cols,
+        "mines": game.mines,
+        "board": game.board_state,
+        "revealed": game.revealed,
+        "flagged": game.flagged,
+        "status": game.status
+    })
+
+@bp.route("/games/<int:game_id>/reveal", methods=["POST"])
+@jwt_required()
+def reveal_cell(game_id):
+    user_id = get_jwt_identity()
+    game = Game.query.filter_by(id=game_id, user_id=user_id).first()
+    if not game:
+        return jsonify({"error": "Game not found"}), 404
+    if game.status != 'ongoing':
+        return jsonify({"error": "Game is already finished"}), 400
+    data = request.json
+    r, c = data["row"], data["col"]
+    if not (0 <= r < game.rows and 0 <= c < game.cols):
+        return jsonify({"error": "Invalid coordinates"}), 400
+    if game.revealed[r][c] or game.flagged[r][c]:
+        return jsonify({"error": "Cell already revealed or flagged"}), 400
+    game.revealed[r][c] = True
+    if game.board_state[r][c] == -1:
+        game.status = 'lost'
+        game.end_time = datetime.utcnow()
+        # Reveal all mines
+        for i in range(game.rows):
+            for j in range(game.cols):
+                if game.board_state[i][j] == -1:
+                    game.revealed[i][j] = True
+    else:
+        if game.board_state[r][c] == 0:
+            flood_fill(game.revealed, game.board_state, r, c, game.rows, game.cols)
+        if check_win(game.revealed, game.board_state, game.rows, game.cols, game.mines):
+            game.status = 'won'
+            game.end_time = datetime.utcnow()
+    db.session.commit()
+    return jsonify({
+        "revealed": game.revealed,
+        "status": game.status
+    })
+
+@bp.route("/games/<int:game_id>/flag", methods=["POST"])
+@jwt_required()
+def flag_cell(game_id):
+    user_id = get_jwt_identity()
+    game = Game.query.filter_by(id=game_id, user_id=user_id).first()
+    if not game:
+        return jsonify({"error": "Game not found"}), 404
+    if game.status != 'ongoing':
+        return jsonify({"error": "Game is already finished"}), 400
+    data = request.json
+    r, c = data["row"], data["col"]
+    if not (0 <= r < game.rows and 0 <= c < game.cols):
+        return jsonify({"error": "Invalid coordinates"}), 400
+    if game.revealed[r][c]:
+        return jsonify({"error": "Cannot flag revealed cell"}), 400
+    game.flagged[r][c] = not game.flagged[r][c]
+    db.session.commit()
+    return jsonify({
+        "flagged": game.flagged
+    })
