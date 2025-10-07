@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from .models import db, User, Game
 import random
 from datetime import datetime
+from sqlalchemy.orm.attributes import flag_modified
 
 bp = Blueprint("api", __name__)
 
@@ -16,7 +17,7 @@ def signup():
     user.set_password(data["password"])
     db.session.add(user)
     db.session.commit()
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify({"token": access_token, "user": {"id": user.id, "username": user.username}}), 201
 
 @bp.route("/login", methods=["POST"])
@@ -24,7 +25,7 @@ def login():
     data = request.json
     user = User.query.filter_by(username=data["username"]).first()
     if user and user.check_password(data["password"]):
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({"token": access_token, "user": {"id": user.id, "username": user.username}})
     return jsonify({"error": "Invalid credentials"}), 401
 
@@ -130,6 +131,7 @@ def reveal_cell(game_id):
         if check_win(game.revealed, game.board_state, game.rows, game.cols, game.mines):
             game.status = 'won'
             game.end_time = datetime.utcnow()
+    flag_modified(game, 'revealed')
     db.session.commit()
     return jsonify({
         "revealed": game.revealed,
