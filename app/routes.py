@@ -32,7 +32,21 @@ def generate_board(rows, cols, mines):
     board = [[0 for _ in range(cols)] for _ in range(rows)]
     mine_coords = random.sample([(r, c) for r in range(rows) for c in range(cols)], mines)
     for r, c in mine_coords:
-        board[r][c] = "M"
+        board[r][c] = -1  # Use -1 for mines
+    # Calculate numbers
+    for r in range(rows):
+        for c in range(cols):
+            if board[r][c] == -1:
+                continue
+            count = 0
+            for dr in [-1, 0, 1]:
+                for dc in [-1, 0, 1]:
+                    if dr == 0 and dc == 0:
+                        continue
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == -1:
+                        count += 1
+            board[r][c] = count
     return board
 
 @bp.route("/games/new", methods=["POST"])
@@ -41,7 +55,9 @@ def new_game():
     data = request.json
     user_id = get_jwt_identity()
     board = generate_board(data["rows"], data["cols"], data["mines"])
-    game = Game(rows=data["rows"], cols=data["cols"], mines=data["mines"], board_state=board, user_id=user_id)
+    revealed = [[False for _ in range(data["cols"])] for _ in range(data["rows"])]
+    flagged = [[False for _ in range(data["cols"])] for _ in range(data["rows"])]
+    game = Game(rows=data["rows"], cols=data["cols"], mines=data["mines"], board_state=board, revealed=revealed, flagged=flagged, user_id=user_id)
     db.session.add(game)
     db.session.commit()
-    return jsonify({"game_id": game.id, "board": game.board_state}), 201
+    return jsonify({"game_id": game.id, "board": game.board_state, "revealed": game.revealed, "flagged": game.flagged}), 201
