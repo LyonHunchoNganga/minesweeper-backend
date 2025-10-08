@@ -1,19 +1,45 @@
-import React from 'react';
-import Board from './gamescreen/board';
+import { useEffect, useState } from "react";
+import Game from "./gamescreen/game"
 
-const GameScreen = ({ game, onReveal, onFlag }) => {
-  return (
-    <div>
-      <h2>Game Status: {game.status}</h2>
-      <Board
-        board={game.board}
-        revealed={game.revealed}
-        flagged={game.flagged}
-        onReveal={onReveal}
-        onFlag={onFlag}
-      />
-    </div>
-  );
+
+function GameScreen(){
+      const [secondsElapsed, setSecondsElapsed] = useState(0);
+      const [isGameActive, setIsGameActive] = useState(false); 
+
+  
+      useEffect(() => {
+        let timer;
+        if (isGameActive) {
+          timer = setInterval(() => {
+            setSecondsElapsed(prev => prev + 1);
+          }, 1000);
+        }
+
+   
+        return () => clearInterval(timer);
+      }, [isGameActive]);
+
+ 
+      const startGame = () => {
+        setSecondsElapsed(0);    
+        setIsGameActive(true);    
+    
+      };
+
+ 
+      const endGame = () => {
+        setIsGameActive(false); 
+      };
+
+
+      return(
+        <div className="game-box-container">
+            <div className="game-box">
+                <p>⏱️ Time: {secondsElapsed}s</p>
+                <Game secondsElapsed={secondsElapsed} startGame={startGame} endGame={endGame}/>
+            </div>
+        </div>
+    );
 };
 
 export default GameScreen;
