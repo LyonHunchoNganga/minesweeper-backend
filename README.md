@@ -66,6 +66,31 @@ python main.py
 
 The API will be available at `http://localhost:5000`
 
+## Frontend
+
+The frontend is a React application located in the `minesweeper/` directory.
+
+### Installation
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd minesweeper
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Running the Frontend
+
+Start the development server:
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173` (default Vite port).
+
 ## API Endpoints
 
 ### Root
@@ -120,6 +145,11 @@ minesweeper-backend/
 │   ├── config.py        # Configuration settings
 │   ├── models.py        # Database models
 │   └── routes.py        # API routes
+├── minesweeper/         # React frontend
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── ...
 ├── migrations/          # Database migrations
 ├── instance/            # Database files
 ├── main.py              # Application entry point
