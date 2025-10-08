@@ -154,6 +154,7 @@ def flag_cell(game_id):
     if game.revealed[r][c]:
         return jsonify({"error": "Cannot flag revealed cell"}), 400
     game.flagged[r][c] = not game.flagged[r][c]
+    flag_modified(game, 'flagged')
     db.session.commit()
     return jsonify({
         "flagged": game.flagged

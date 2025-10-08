@@ -18,6 +18,7 @@ const Welcome = ({ onLogin }) => {
       const data = await response.json();
       if (response.ok) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         onLogin(data.user);
       } else {
         setError(data.error);

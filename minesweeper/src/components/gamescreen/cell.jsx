@@ -1,29 +1,38 @@
 import React from 'react';
 
-const Cell = ({ row, col, cell, onClick, gameOver }) => {
-  const handleClick = () => {
-    if (!cell.revealed) {
-      onClick();
+const Cell = ({ value, isRevealed, isFlagged, onReveal, onFlag }) => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    if (!isRevealed && !isFlagged) {
+      onReveal();
+    }
+  };
+
+  const handleRightClick = (e) => {
+    e.preventDefault();
+    if (!isRevealed) {
+      onFlag();
     }
   };
 
   let display = '';
-  if (cell.revealed) {
-    if (cell.mine) {
+  if (isFlagged) {
+    display = '🚩';
+  } else if (isRevealed) {
+    if (value === -1) {
       display = '💣';
-    } else if (cell.adjacentMines === 0) {
+    } else if (value === 0) {
       display = '';
     } else {
-      display = cell.adjacentMines.toString();
+      display = value.toString();
     }
-  } else if (gameOver && cell.mine) {
-    display = '💣';
   }
 
   return (
     <div
-      className={`cell ${cell.revealed ? 'revealed' : 'hidden'}`}
+      className={`cell ${isRevealed ? 'revealed' : 'hidden'}`}
       onClick={handleClick}
+      onContextMenu={handleRightClick}
     >
       {display}
     </div>

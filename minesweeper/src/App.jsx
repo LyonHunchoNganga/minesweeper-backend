@@ -8,9 +8,9 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (token) {
-      // Optionally verify token, but for now assume valid
-      setUser({ username: 'user' }) // Placeholder
+    const user = localStorage.getItem('user')
+    if (token && user) {
+      setUser(JSON.parse(user))
     }
   }, [])
 
@@ -20,6 +20,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setUser(null)
   }
 

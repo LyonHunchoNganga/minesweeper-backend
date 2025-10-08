@@ -1,19 +1,22 @@
 import React from 'react';
 import Cell from './cell';
 
-const Board = ({ grid, handleCellClick, gameOver }) => {
+const Board = ({ board, revealed, flagged, onReveal, onFlag }) => {
+  const rows = board.length;
+  const cols = board[0].length;
+
   return (
     <div className="board">
-      {grid.map((row, r) => (
+      {board.map((row, r) => (
         <div key={r} className="row">
-          {row.map((cell, c) => (
+          {row.map((value, c) => (
             <Cell
               key={`${r}-${c}`}
-              row={r}
-              col={c}
-              cell={cell}
-              onClick={() => handleCellClick(r, c)}
-              gameOver={gameOver}
+              value={value}
+              isRevealed={revealed[r][c]}
+              isFlagged={flagged[r][c]}
+              onReveal={() => onReveal(r, c)}
+              onFlag={() => onFlag(r, c)}
             />
           ))}
         </div>
